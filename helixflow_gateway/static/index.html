@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelixFlow Gateway Router Console</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="logo-icon">🧬</span>
+                <h2>HelixFlow</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <span class="nav-icon">📊</span> Usage & Spend
+                </button>
+                <button class="nav-item" data-tab="logs">
+                    <span class="nav-icon">📜</span> Live Logs
+                </button>
+                <button class="nav-item" data-tab="configure">
+                    <span class="nav-icon">⚙️</span> Configure Router
+                </button>
+                <button class="nav-item" data-tab="simulator">
+                    <span class="nav-icon">🧪</span> LLM Simulator
+                </button>
+                <button class="nav-item" data-tab="security">
+                    <span class="nav-icon">🛡️</span> Security & Governance
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="dot green"></span>
+                    <span class="status-text">Router Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar">
+                <div class="header-title">
+                    <h1 id="tab-title">Usage & Spend</h1>
+                    <p id="tab-subtitle">Track costs and routing patterns across models and projects</p>
+                </div>
+                <div class="header-actions">
+                    <div class="token-auth-box">
+                        <label for="auth-token">Access Token:</label>
+                        <input type="password" id="auth-token" placeholder="Bearer sk-...">
+                        <button id="save-token-btn" class="btn btn-secondary">Apply</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- System Status Ticker -->
+            <div class="system-ticker">
+                <div class="tick-item">Core Overhead: <strong id="ticker-overhead">--</strong></div>
+                <div class="tick-item">Active Connections: <strong id="ticker-conn">--</strong></div>
+                <div class="tick-item">Memory Cache Hit Rate: <strong id="ticker-cache">--</strong></div>
+                <div class="tick-item">Uptime: <strong id="ticker-uptime">--</strong></div>
+            </div>
+
+            <!-- Tab: Dashboard -->
+            <section id="tab-dashboard" class="tab-pane active">
+                <!-- Empty State Helper -->
+                <div class="empty-state-card" id="empty-state-container" style="display: none;">
+                    <div class="empty-icon">📊</div>
+                    <h3>No Gateway Traffic Recorded Yet</h3>
+                    <p>The gateway hasn't captured any request telemetry. Trigger a test request to populate the analytics console:</p>
+                    <pre><code id="empty-curl-example">curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Authorization: Bearer sk-8849e55b11034fdeabef66f45cee2efd" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Hello HelixFlow!"}]}'</code></pre>
+                    <p class="guide-note">Or execute the automated local test traffic script: <code>python scratch/test_traffic.py</code></p>
+                </div>
+
+                <!-- Active Dashboard View -->
+                <div id="dashboard-active-view">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span>Total Spend</span>
+                                <span class="icon">💰</span>
+                            </div>
+                            <div class="metric-value" id="stat-total-spend">$0.00</div>
+                            <div class="metric-sub">Across all models & projects</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span>DeepSeek Split</span>
+                                <span class="icon">⚡</span>
+                            </div>
+                            <div class="metric-value" id="stat-deepseek-split">0.0%</div>
+                            <div class="metric-sub">Speed Edge execution</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span>Gemini Split</span>
+                                <span class="icon">🔮</span>
+                            </div>
+                            <div class="metric-value" id="stat-gemini-split">0.0%</div>
+                            <div class="metric-sub">Dense Reasoning engine</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span>Anthropic Split</span>
+                                <span class="icon">🧠</span>
+                            </div>
+                            <div class="metric-value" id="stat-anthropic-split">0.0%</div>
+                            <div class="metric-sub">Agent Code Generation</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span>Avg Latency</span>
+                                <span class="icon">⏱️</span>
+                            </div>
+                            <div class="metric-value" id="stat-avg-latency">0 ms</div>
+                            <div class="metric-sub">Across all routed requests</div>
+                        </div>
+                    </div>
+
+                        <div class="hud-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <!-- Chart 1: Daily Token Volume -->
+                        <div class="dashboard-card chart-container">
+                            <h3>Daily Token Volume</h3>
+                            <div class="trend-chart-box">
+                                <canvas id="chart-routing"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Spend by Model -->
+                        <div class="dashboard-card chart-container">
+                            <h3>Spend by Model</h3>
+                            <div class="trend-chart-box">
+                                <canvas id="chart-latency"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 3: Cumulative Savings -->
+                        <div class="dashboard-card chart-container">
+                            <h3>Estimated Savings vs Direct Provider</h3>
+                            <div class="trend-chart-box">
+                                <canvas id="chart-savings"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 4 & 5: Matrices -->
+                        <div class="dashboard-card" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="flex: 1;">
+                                <h3>Token Ingestion Matrix</h3>
+                                <div class="trend-chart-box" style="height: 100px;">
+                                    <canvas id="chart-tokens"></canvas>
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <h3>Upstream Circuit Breakers</h3>
+                                <div class="breakdown-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="token-auth-box" style="justify-content: space-between; padding: 10px;">
+                                        <span style="font-family: var(--font-mono); font-size: 12px;">DeepSeek Edge</span>
+                                        <div class="status-indicator"><span class="dot green"></span> OK</div>
+                                    </div>
+                                    <div class="token-auth-box" style="justify-content: space-between; padding: 10px;">
+                                        <span style="font-family: var(--font-mono); font-size: 12px;">Gemini Vertex</span>
+                                        <div class="status-indicator"><span class="dot green"></span> OK</div>
+                                    </div>
+                                    <div class="token-auth-box" style="justify-content: space-between; padding: 10px;">
+                                        <span style="font-family: var(--font-mono); font-size: 12px;">Claude Gen</span>
+                                        <div class="status-indicator"><span class="dot green"></span> OK</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Logs -->
+            <section id="tab-logs" class="tab-pane">
+                <div class="log-toolbar">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="log-search" placeholder="Search logs by model, policy, status...">
+                    </div>
+                    <div class="toolbar-actions">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="live-stream-toggle" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">Live Logs</span>
+                        </label>
+                        <button id="refresh-logs-btn" class="btn btn-secondary">Refresh</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Policy</th>
+                                <th>Model</th>
+                                <th>Project</th>
+                                <th>Status</th>
+                                <th>Tokens</th>
+                                <th>Latency (ms)</th>
+                                <th>TTFT (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                            <!-- Dynamic logs -->
+                        </tbody>
+                    </table>
+                    <div class="empty-state-card" id="logs-empty-state" style="display: none; padding: 40px; text-align: center;">
+                        <span style="font-size: 24px;">📜</span>
+                        <h4 style="margin-top: 10px;">No Log Entries Found</h4>
+                        <p style="color: var(--text-secondary); font-size: 13px;">Send request payloads to the gateway to see execution records.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Configure -->
+            <section id="tab-configure" class="tab-pane">
+                <div class="config-grid">
+                    <!-- Dynamic API Credentials Manager -->
+                    <div class="config-card">
+                        <h3>Upstream API Credentials</h3>
+                        <div class="form-group">
+                            <label for="cred-deepseek-key">DeepSeek API Key</label>
+                            <input type="password" id="cred-deepseek-key" placeholder="sk-...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-deepseek-base">DeepSeek API Base URL</label>
+                            <input type="text" id="cred-deepseek-base" value="https://api.deepseek.com/v1">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-gemini-key">Google Gemini API Key</label>
+                            <input type="password" id="cred-gemini-key" placeholder="AQ.Ab...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-gemini-base">Google Gemini API Base URL</label>
+                            <input type="text" id="cred-gemini-base" value="https://generativelanguage.googleapis.com/v1beta">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-openai-key">OpenAI API Key</label>
+                            <input type="password" id="cred-openai-key" placeholder="sk-proj-...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-openai-base">OpenAI API Base URL</label>
+                            <input type="text" id="cred-openai-base" value="https://api.openai.com/v1">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-anthropic-key">Anthropic API Key</label>
+                            <input type="password" id="cred-anthropic-key" placeholder="sk-ant-...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cred-anthropic-base">Anthropic API Base URL</label>
+                            <input type="text" id="cred-anthropic-base" value="https://api.anthropic.com/v1">
+                        </div>
+                        <p class="card-hint">🔑 Add popular AI model API keys and endpoint base URLs here. These settings dynamically override backend environment variables and are securely saved to Redis.</p>
+                    </div>
+
+                    <!-- Routing Configuration -->
+                    <div class="config-card">
+                        <h3>Model Routing Policies</h3>
+                        <div class="form-group">
+                            <label>Default Decision Policy</label>
+                            <select id="config-routing-mode">
+                                <option value="auto">Multi-Armed Auto-Router (Cost Optimized)</option>
+                                <option value="bypass-speed">Force DeepSeek (Speed Priority)</option>
+                                <option value="bypass-dense">Force Gemini (Reasoning Priority)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Edge Speed Model Mapping</label>
+                            <input type="text" id="config-speed-model" value="fabric-speed-edge (deepseek-chat)" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Dense Reasoning Model Mapping</label>
+                            <input type="text" id="config-dense-model" value="fabric-dense-reasoning (gemini-2.5-pro)" readonly>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <h3>Vendor Enablement</h3>
+                        <div class="vendor-toggles">
+                            <label class="switch-row">
+                                <div class="switch-label">
+                                    <strong>DeepSeek Integration</strong>
+                                    <span>Route speed edge requests directly</span>
+                                </div>
+                                <input type="checkbox" id="vendor-deepseek" checked>
+                            </label>
+                            <label class="switch-row">
+                                <div class="switch-label">
+                                    <strong>Gemini AI Integration</strong>
+                                    <span>Route complex reasoning requests</span>
+                                </div>
+                                <input type="checkbox" id="vendor-gemini" checked>
+                            </label>
+                            <label class="switch-row">
+                                <div class="switch-label">
+                                    <strong>OpenAI Integration</strong>
+                                    <span>Route standard GPT requests</span>
+                                </div>
+                                <input type="checkbox" id="vendor-openai" checked>
+                            </label>
+                            <label class="switch-row">
+                                <div class="switch-label">
+                                    <strong>Anthropic Integration</strong>
+                                    <span>Route Claude requests</span>
+                                </div>
+                                <input type="checkbox" id="vendor-anthropic" checked>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="config-actions">
+                    <button id="save-config-btn" class="btn btn-primary">Save Settings</button>
+                    <span id="config-save-status" class="status-msg"></span>
+                </div>
+            </section>
+
+            <!-- Tab: Simulator -->
+            <section id="tab-simulator" class="tab-pane">
+                <div class="simulator-toolbar">
+                    <div class="sim-controls">
+                        <div class="control-item">
+                            <label for="sim-model-a">Model A:</label>
+                            <select id="sim-model-a">
+                                <option value="fabric-speed-edge">fabric-speed-edge (DeepSeek)</option>
+                                <option value="fabric-dense-reasoning">fabric-dense-reasoning (Gemini)</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
+                            <label for="sim-model-b">Model B:</label>
+                            <select id="sim-model-b">
+                                <option value="fabric-dense-reasoning">fabric-dense-reasoning (Gemini)</option>
+                                <option value="fabric-speed-edge">fabric-speed-edge (DeepSeek)</option>
+                            </select>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="sim-stream-toggle" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">Stream output</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" id="run-sim-btn">Run Side-by-Side Simulation</button>
+                </div>
+
+                <div class="simulator-prompts">
+                    <div class="form-group">
+                        <label for="sim-sys-prompt">System Prompt</label>
+                        <input type="text" id="sim-sys-prompt" placeholder="e.g. You are a helpful assistant..." value="You are a precise developer assistant. Respond concisely.">
+                    </div>
+                    <div class="form-group">
+                        <label for="sim-user-prompt">User Message</label>
+                        <textarea id="sim-user-prompt" rows="3" placeholder="Enter prompt to evaluate...">Explain the concept of recursion in programming with a simple example.</textarea>
+                    </div>
+                </div>
+
+                <div class="simulator-panels">
+                    <div class="sim-panel">
+                        <div class="panel-header">
+                            <h4 id="sim-title-a">Model A</h4>
+                            <span class="badge speed-badge">Speed Edge</span>
+                        </div>
+                        <div class="panel-body" id="sim-body-a">Response will appear here...</div>
+                        <div class="panel-footer">
+                            <div class="stat-pill">Cost: <strong id="sim-cost-a">-</strong></div>
+                            <div class="stat-pill">Tokens: <strong id="sim-tokens-a">-</strong></div>
+                            <div class="stat-pill">Latency: <strong id="sim-latency-a">-</strong></div>
+                            <div class="stat-pill">TTFT: <strong id="sim-ttft-a">-</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="sim-panel">
+                        <div class="panel-header">
+                            <h4 id="sim-title-b">Model B</h4>
+                            <span class="badge reasoning-badge">Dense Reasoning</span>
+                        </div>
+                        <div class="panel-body" id="sim-body-b">Response will appear here...</div>
+                        <div class="panel-footer">
+                            <div class="stat-pill">Cost: <strong id="sim-cost-b">-</strong></div>
+                            <div class="stat-pill">Tokens: <strong id="sim-tokens-b">-</strong></div>
+                            <div class="stat-pill">Latency: <strong id="sim-latency-b">-</strong></div>
+                            <div class="stat-pill">TTFT: <strong id="sim-ttft-b">-</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Security & Governance -->
+            <section id="tab-security" class="tab-pane">
+                <div class="metrics-grid" style="margin-bottom: 24px;">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span>PII Scrubbed</span>
+                            <span class="status-indicator"><span class="dot green"></span> ACTIVE</span>
+                        </div>
+                        <div class="metric-value" id="sec-pii-count">0</div>
+                        <div class="metric-sub">Protected records via Regex Sanitizer</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span>Injections Blocked</span>
+                            <span class="status-indicator"><span class="dot green"></span> ACTIVE</span>
+                        </div>
+                        <div class="metric-value" id="sec-inj-count">0</div>
+                        <div class="metric-sub">Malicious prompts dropped</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span>Active BYOK Scopes</span>
+                        </div>
+                        <div class="metric-value">2</div>
+                        <div class="metric-sub">Identity-based keys granted</div>
+                    </div>
+                </div>
+
+                <!-- Circuit Breakers Grid -->
+                <div class="config-card">
+                    <h3>Manual Provider Circuit Breakers</h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">Use these administrative kill switches to instantly isolate a vendor. Traffic will be forced to failover.</p>
+                    
+                    <div class="config-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="token-auth-box" style="justify-content: space-between; padding: 16px;">
+                            <div>
+                                <span style="font-weight: 600; font-size: 13px;">DeepSeek Edge</span>
+                                <p style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px;">Primary speed routing tier</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="token-auth-box" style="justify-content: space-between; padding: 16px;">
+                            <div>
+                                <span style="font-weight: 600; font-size: 13px;">Gemini Vertex</span>
+                                <p style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px;">Primary dense reasoning tier</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="token-auth-box" style="justify-content: space-between; padding: 16px;">
+                            <div>
+                                <span style="font-weight: 600; font-size: 13px;">Claude Gen</span>
+                                <p style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px;">Code generation & large context</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Disconnected Overlay -->
+    <div id="overlay-disconnected" class="overlay-disconnected">
+        <h2>⚠️ Gateway Offline</h2>
+        <p>The HelixFlow routing engine is unreachable. Checking connection...</p>
+    </div>
+
+    <!-- Transaction Drawer -->
+    <div id="transaction-drawer" class="transaction-drawer">
+        <div class="drawer-header">
+            <div>
+                <h3 id="drawer-log-id">tx-00000000</h3>
+                <p id="drawer-log-model" style="font-family: var(--font-mono); color: var(--primary-cyan);">deepseek-chat</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <button id="drawer-close" class="drawer-close">×</button>
+            </div>
+        </div>
+        <div class="drawer-body">
+            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Intercepted Payload Block</h4>
+            <pre id="drawer-payload-raw" class="raw-payload-block"></pre>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</html>

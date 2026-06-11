@@ -3,7 +3,8 @@ from fastapi import FastAPI
 import redis.asyncio as aioredis
 from helixflow_gateway.env_spec import runtime_settings
 from helixflow_gateway.interceptors.security import TokenGuardInterceptor
-from helixflow_gateway.controllers import diagnostics, execution
+from helixflow_gateway.controllers import diagnostics, execution, dashboard
+from fastapi.staticfiles import StaticFiles
 
 # Enforce uvloop if available for low-latency event loop
 try:
@@ -36,6 +37,10 @@ def create_app() -> FastAPI:
     # Attach routers
     app.include_router(diagnostics.router)
     app.include_router(execution.router)
+    app.include_router(dashboard.router)
+
+    # Mount static assets for Dashboard SPA
+    app.mount("/dashboard", StaticFiles(directory="helixflow_gateway/static", html=True), name="static")
 
     # Bind security filter interceptors into backend paths
     app.add_middleware(TokenGuardInterceptor)

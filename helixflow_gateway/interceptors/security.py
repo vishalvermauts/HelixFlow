@@ -1,20 +1,21 @@
+from fastapi.responses import JSONResponse
 import hashlib
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 import redis.asyncio as aioredis
 
 
 class TokenGuardInterceptor(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Exclude metric loop paths from explicit verification cycles
-        if request.url.path in ["/health", "/metrics"]:
+        # Exclude metric loop paths and static dashboard paths from explicit verification cycles
+        if request.url.path in ["/health", "/metrics"] or request.url.path.startswith("/dashboard"):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Security credentials missing or malformed."
+                content={"detail": "Security credentials missing or malformed."}
             )
 
         raw_token = auth_header.split(" ")[1]
@@ -26,15 +27,15 @@ class TokenGuardInterceptor(BaseHTTPMiddleware):
         identity_profile = await cache_client.hgetall(f"gateway:identities:{token_hash}")
 
         if not identity_profile:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Access unauthorized. Invalid credential signature."
+                content={"detail": "Access unauthorized. Invalid credential signature."}
             )
 
         if identity_profile.get("status") != "active":
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access configuration suspended for this token entity."
+                content={"detail": "Access configuration suspended for this token entity."}
             )
 
         # Propagate identity downstream the network stack handlers
