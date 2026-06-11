@@ -77,7 +77,7 @@
                     <h3>No Gateway Traffic Recorded Yet</h3>
                     <p>The gateway hasn't captured any request telemetry. Trigger a test request to populate the analytics console:</p>
                     <pre><code id="empty-curl-example">curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer sk-8849e55b11034fdeabef66f45cee2efd" \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Hello HelixFlow!"}]}'</code></pre>
                     <p class="guide-note">Or execute the automated local test traffic script: <code>python scratch/test_traffic.py</code></p>
