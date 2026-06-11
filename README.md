@@ -44,9 +44,10 @@ CACHE_POOL_LIMIT=100
 GATEWAY_WORKERS=4
 
 # Upstream Vendor Authentications
-DEFAULT_FABRIC_URL=https://api.deepseek.com/v1
-OPENAI_API_KEY=sk-your-primary-key
-DEEPSEEK_API_KEY=sk-your-fallback-key
+UPSTREAM_TIMEOUT_SEC=120.0
+DEFAULT_FABRIC_URL=https://api.openai.com/v1
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+GEMINI_API_KEY=AIzaSy-your-gemini-key
 ```
 
 ### 2. Launch Using the High-Performance Engine Profile
