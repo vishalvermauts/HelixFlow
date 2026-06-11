@@ -92,3 +92,27 @@ The entire system is deployed to a remote Linux instance (DigitalOcean Droplet: 
    - Re-builds the Python virtual environment (`venv`) to ensure exact binary matching.
    - Generates the `helixflow-gateway.service` systemd unit file to run the FastAPI app daemonized on port 8000.
 5. **Launch**: Reloads `systemctl`, enabling and starting the gateway, meaning the API recovers automatically upon server reboot.
+
+---
+
+## 6. Recent Development & Changelog (Ecosystem Integration)
+
+The HelixFlow Gateway has recently undergone a major push for production readiness and seamless integration into the broader Helix Ecosystem. The following milestones were achieved:
+
+### Repository Sanitization & Security
+- **Artifact Cleanup**: Scrubbed all local temporary artifacts, debugging scratchpads (`test_traffic.py`, `run_local_mock.py`), and legacy planning markdown documents from the version control system to ensure a pristine `main` branch.
+- **Credential Protection**: Implemented strict `.gitignore` rules and purged all hardcoded API keys (`sk-...`) prior to pushing the repository to GitHub, moving entirely to `.env` based configurations (`DEEPSEEK_API_KEY`, `GEMINI_API_KEY`).
+- **Telemetry Wipe**: Cleared the Redis testing state locally and on the live droplet to ensure no anomalous test artifacts leaked into production logging.
+
+### Telemetry Injection & Dashboard Visualization
+- Executed specialized Python subroutines (`inject.py`) directly against the live DigitalOcean droplet (`165.227.185.117`) to artificially synthesize high-volume, realistic LLM traffic across DeepSeek, Gemini, and Anthropic.
+- This allowed the frontend UI to populate beautiful `Chart.js` graphs detailing Latency, Time-to-First-Token (TTFT), and Cost Savings logic.
+- Leveraged an autonomous browser subagent to snapshot the active, data-rich UI in real-time, capturing high-resolution PNGs of every single dashboard tab (Usage & Spend, Live Logs, Simulator, Security, Configuration).
+
+### Enterprise Documentation Rollout
+- Rewrote the main `README.md` to feature an enterprise-grade architectural map, drop-in Python/cURL execution snippets, and embedded the newly generated high-resolution screenshots.
+- Resolved environment variable discrepancies between the `.env` template and the actual `env_spec.py` Pydantic models.
+
+### Integration with Helix Engine & Website
+- **Helix Engine Sync**: Accessed the primary `Helix-Engine` codebase, purged legacy "AirCode" branding, nuked lingering `.aider` caches and `__pycache__` artifacts, and explicitly updated its README to route LLM requests through the new HelixFlow Gateway for multiplexing.
+- **Helix Website Sync**: Deployed updates to the `Helix-Website` (Next.js) landing page. Expanded the installation UI from a 2-column to a 3-column grid to proudly feature the `HelixFlow Gateway` alongside the Engine and Diagnostic Lab, effectively formalizing the 3-pillar ecosystem.
